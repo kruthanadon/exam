@@ -58,6 +58,17 @@ async function handleVerifyEmail() {
     if (!examInput) return alert("กรุณาเลือกวิชาสอบ");
     if (!emailInput) return alert("กรุณากรอก Email");
 
+    // ⭐ [จุดแก้ไขที่ 1] เพิ่ม Regular Expression ตรวจสอบรูปแบบ Email (ต้องมี @ และโครงสร้างที่ถูกต้อง)
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(emailInput)) {
+        return alert("❌ รูปแบบ Email ไม่ถูกต้อง! กรุณาตรวจสอบอีกครั้ง (เช่น student@email.com)");
+    }
+
+    // ⭐ [จุดแก้ไขที่ 2 - ตัวเลือกเสริม] ถ้าอยากล็อกให้ใช้เฉพาะ Email ของโรงเรียนเท่านั้น ให้เปิดใช้งาน 3 บรรทัดนี้
+    // if (!emailInput.endsWith("@blm.ac.th")) {
+    //     return alert("❌ ระบบอนุญาตให้ใช้เฉพาะ Email ของสถาบัน (@blm.ac.th) เท่านั้น!");
+    // }
+
     currentEmail = emailInput;
     selectedExam = examInput;
 
