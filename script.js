@@ -1,0 +1,177 @@
+const API_URL = "https://script.google.com/macros/s/AKfycbygJE90BMEPD2HwLkbMGYF8z_raFAYV5fNre_AODSy9Irnl0fSvXKXrKbUJYOpBLqURlA/exec";
+
+let selectedExam = "";
+let currentEmail = "";
+
+window.onload = function() {
+    checkLockStatus();
+};
+
+function checkLockStatus() {
+    const isLocked = localStorage.getItem("isLocked");
+    if (isLocked === "true") {
+        // ดึงชื่อวิชาที่เคยสอบค้างไว้ตอนโดนล็อกมาแสดงซ้ำ
+        selectedExam = localStorage.getItem("currentExam") || "";
+        showLockScreen();
+    } else {
+        fetchActiveExams();
+    }
+}
+
+// 1. ดึงรายชื่อวิชาทั้งหมดจากตาราง Exams ใน Sheet มาใส่ตาราง Dropdown
+async function fetchActiveExams() {
+  try {
+      switchView('view-loading');
+      const response = await fetch(`${API_URL}?action=getExams`);
+      const result = await response.json();
+      
+      if (result.status === "success") {
+          const selectElement = document.getElementById('select-exam');
+          selectElement.innerHTML = '<option value="">-- กรุณาเลือกวิชาสอบ --</option>';
+          
+          result.data.forEach(exam => {
+              const option = document.createElement('option');
+              option.value = exam;
+              option.textContent = exam;
+              selectElement.appendChild(option);
+          });
+          switchView('view-login');
+      } else {
+          alert("ไม่สามารถดึงข้อมูลข้อสอบได้");
+      }
+  } catch (error) {
+      console.error(error);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล");
+  }
+}
+
+// 2. ตรวจสอบสิทธิ์อีเมลและวิชาสอบ
+async function handleVerifyEmail() {
+    const emailInput = document.getElementById('input-email').value.trim().toLowerCase();
+    const examInput = document.getElementById('select-exam').value;
+
+    if (!examInput) return alert("กรุณาเลือกวิชาสอบ");
+    if (!emailInput) return alert("กรุณากรอก Email");
+
+    currentEmail = emailInput;
+    selectedExam = examInput;
+
+    try {
+        switchView('view-loading');
+        // เรียกตรวจสอบฝั่ง Server ว่าคู่อีเมล+วิชานี้เคยมีประวัติการสอบหรือยัง
+        const response = await fetch(`${API_URL}?action=checkEmail&email=${encodeURIComponent(currentEmail)}&exam=${encodeURIComponent(selectedExam)}`);
+        const result = await response.json();
+
+        if (result.hasTaken) {
+            switchView('view-already-taken');
+        } else {
+            // บันทึกสิทธิ์และรับ Secure ลิงก์ Google Form กลับมา
+            await registerExam(currentEmail, selectedExam);
+        }
+    } catch (error) {
+        console.error(error);
+        alert("เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์");
+        switchView('view-login');
+    }
+}
+
+// 3. ลงทะเบียนและรับลิงก์ทำข้อสอบ
+async function registerExam(email, exam) {
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' }, // ใช้ text/plain หลีกเลี่ยงปัญหา preflight CORS ของ Apps Script
+            body: JSON.stringify({ action: 'register', email: email, exam: exam })
+        });
+        const result = await response.json();
+
+        if (result.status === "success") {
+            // เซฟสถานะลง LocalStorage ป้องกันเปิดใหม่แอบเปลี่ยนวิชาหนีความผิด
+            localStorage.setItem("currentExam", exam);
+            if (!localStorage.getItem("cheatCount")) localStorage.setItem("cheatCount", "0");
+
+            // ดึงลิงก์ฟอร์มที่ได้มาจากหลังบ้านฝังใส่ Iframe ทันที ปลอดภัยแน่นอนเด็กเปิด F12 ล่วงหน้าก็ไม่เจอลิ้งก์
+            document.getElementById('exam-iframe').src = result.formUrl;
+            switchView('view-exam');
+            initAntiCheat();
+        } else {
+            alert(result.message);
+            switchView('view-login');
+        }
+    } catch (error) {
+        console.error(error);
+        alert("ระบบบันทึกข้อมูลขัดข้อง");
+        switchView('view-login');
+    }
+}
+
+// 4. ระบบตรวจจับการทุจริต (ผสมผสานทั้ง Blur และ VisibilityChange เพื่อความแม่นยำ)
+function initAntiCheat() {
+    function triggerCheatCounter() {
+        if (document.getElementById('view-exam').classList.contains('hidden')) return;
+
+        let count = parseInt(localStorage.getItem("cheatCount")) || 0;
+        count++;
+        localStorage.setItem("cheatCount", count.toString());
+
+        alert(`⚠️ คำเตือน: คุณออกนอกหน้าจอสอบแล้วจำนวน ${count} ครั้ง หากเกิน 3 ครั้งระบบจะทำการล็อก!`);
+
+        if (count >= 3) {
+            localStorage.setItem("isLocked", "true");
+            showLockScreen();
+        }
+    }
+
+    // ตรวจจับเมื่อผู้สอบคลิกออกไปนอก Browser หรือเปิดโปรแกรมอื่นบังหน้าจอ
+    window.onblur = triggerCheatCounter;
+
+    // ตรวจจับเมื่อเปลี่ยนแท็บ หรือ ย่อหน้าต่างลง (Visibility API)
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+            triggerCheatCounter();
+        }
+    });
+}
+
+function showLockScreen() {
+    const count = localStorage.getItem("cheatCount") || 3;
+    document.getElementById('lock-message').innerText = `คุณทุจริตการสอบเนื่องจากออกจากหน้าสอบวิชา [${selectedExam}] จำนวน ${count} ครั้ง`;
+    switchView('view-lock');
+}
+
+// 5. ส่งรหัสผ่านไปตรวจที่หลังบ้าน (Server-side Password Verification)
+async function handleUnlock() {
+    const passwordInput = document.getElementById('teacher-password').value;
+    if (!passwordInput) return alert("กรุณากรอกรหัสผ่าน");
+
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({ action: 'verifyPassword', exam: selectedExam, password: passwordInput })
+        });
+        const result = await response.json();
+
+        if (result.status === "success" && result.valid === true) {
+            // เคลียร์ค่าทั้งหมดเมื่อคุณครูปลดล็อกสำเร็จ
+            localStorage.setItem("isLocked", "false");
+            localStorage.setItem("cheatCount", "0");
+            localStorage.removeItem("currentExam");
+            document.getElementById('teacher-password').value = "";
+            
+            // รีโหลดหน้าจอเพื่อเตรียมรับนักเรียนคนต่อไป
+            fetchActiveExams();
+        } else {
+            alert("รหัสผ่านของวิชานี้ไม่ถูกต้อง!");
+        }
+    } catch (error) {
+        console.error(error);
+        alert("ไม่สามารถตรวจสอบรหัสผ่านได้ในขณะนี้");
+    }
+}
+
+function switchView(viewId) {
+    const views = ['view-loading', 'view-login', 'view-already-taken', 'view-exam', 'view-lock'];
+    views.forEach(id => document.getElementById(id).classList.add('hidden'));
+    document.getElementById(viewId).classList.remove('hidden');
+}
