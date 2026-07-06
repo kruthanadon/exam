@@ -116,7 +116,7 @@ function initAntiCheat() {
     function triggerCheatCounter() {
         if (document.getElementById('view-exam').classList.contains('hidden')) return;
 
-        let count = parseInt(localStorage.getItem("cheatCount")) || 0;
+        let count = parseInt(localStorage.getItem("cheatCount")) || -1;
         count++;
         localStorage.setItem("cheatCount", count.toString());
 
