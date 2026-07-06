@@ -7,13 +7,18 @@ window.onload = function() {
     checkLockStatus();
 };
 
+// [จุดที่ 3] อัปเดตฟังก์ชัน checkLockStatus เดิม
 function checkLockStatus() {
     const isLocked = localStorage.getItem("isLocked");
     if (isLocked === "true") {
-        // ดึงชื่อวิชาที่เคยสอบค้างไว้ตอนโดนล็อกมาแสดงซ้ำ
         selectedExam = localStorage.getItem("currentExam") || "";
         showLockScreen();
     } else {
+        // ⭐ เพิ่มบรรทัดนี้: ถ้าไม่ได้ถูกล็อกอยู่ และไม่ได้อยู่ในหน้าสอบ ให้เคลียร์ประวัติเก่าทิ้งเพื่อเตรียมสอบวิชาใหม่
+        localStorage.removeItem("currentExam");
+        localStorage.removeItem("formUrl");
+        localStorage.removeItem("cheatCount");
+        
         fetchActiveExams();
     }
 }
@@ -76,21 +81,22 @@ async function handleVerifyEmail() {
 }
 
 // 3. ลงทะเบียนและรับลิงก์ทำข้อสอบ
+// [จุดที่ 1] อัปเดตในฟังก์ชัน registerExam เดิม
 async function registerExam(email, exam) {
     try {
         const response = await fetch(API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'text/plain' }, // ใช้ text/plain หลีกเลี่ยงปัญหา preflight CORS ของ Apps Script
+            headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({ action: 'register', email: email, exam: exam })
         });
         const result = await response.json();
 
         if (result.status === "success") {
-            // เซฟสถานะลง LocalStorage ป้องกันเปิดใหม่แอบเปลี่ยนวิชาหนีความผิด
+            // เซฟสถานะลง LocalStorage
             localStorage.setItem("currentExam", exam);
+            localStorage.setItem("formUrl", result.formUrl); // ⭐ เพิ่มบรรทัดนี้: จำลิงก์ข้อสอบไว้
             if (!localStorage.getItem("cheatCount")) localStorage.setItem("cheatCount", "0");
 
-            // ดึงลิงก์ฟอร์มที่ได้มาจากหลังบ้านฝังใส่ Iframe ทันที ปลอดภัยแน่นอนเด็กเปิด F12 ล่วงหน้าก็ไม่เจอลิ้งก์
             document.getElementById('exam-iframe').src = result.formUrl;
             switchView('view-exam');
             initAntiCheat();
@@ -140,6 +146,7 @@ function showLockScreen() {
 }
 
 // 5. ส่งรหัสผ่านไปตรวจที่หลังบ้าน (Server-side Password Verification)
+// [จุดที่ 2] อัปเดตฟังก์ชัน handleUnlock ใหม่ทั้งหมดแทนของเดิม
 async function handleUnlock() {
     const passwordInput = document.getElementById('teacher-password').value;
     if (!passwordInput) return alert("กรุณากรอกรหัสผ่าน");
@@ -153,14 +160,21 @@ async function handleUnlock() {
         const result = await response.json();
 
         if (result.status === "success" && result.valid === true) {
-            // เคลียร์ค่าทั้งหมดเมื่อคุณครูปลดล็อกสำเร็จ
+            // 1. ปลดล็อกระบบ และรีเซ็ตแต้มโกงให้เริ่มนับ 0 ใหม่ (ให้โอกาสแก้ตัว)
             localStorage.setItem("isLocked", "false");
             localStorage.setItem("cheatCount", "0");
-            localStorage.removeItem("currentExam");
             document.getElementById('teacher-password').value = "";
             
-            // รีโหลดหน้าจอเพื่อเตรียมรับนักเรียนคนต่อไป
-            fetchActiveExams();
+            // 2. ดึงลิงก์ข้อสอบเดิมที่เซฟไว้กลับมาใส่ใน iframe 
+            // (ช่วยแก้ปัญหาเด็กกด Refresh หน้าจอตอนติดล็อกได้อย่างสมบูรณ์แบบ)
+            const savedFormUrl = localStorage.getItem("formUrl");
+            if (savedFormUrl) {
+                document.getElementById('exam-iframe').src = savedFormUrl;
+            }
+            
+            // 3. พานักเรียนกลับเข้าหน้าสอบทันที ไม่ต้องผ่านหน้าล็อกอินแล้ว!
+            switchView('view-exam'); 
+            
         } else {
             alert("รหัสผ่านของวิชานี้ไม่ถูกต้อง!");
         }
