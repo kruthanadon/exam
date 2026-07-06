@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบสอบออนไลน์ (Anti-Cheat System)</title>
+    <style>
+        body { font-family: 'Chula', sans-serif; background: #f3f4f6; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; max-width: 500px; width: 100%; }
+        .hidden { display: none !important; }
+        .full-screen { position: fixed; top:0; left:0; width:100vw; height:100vh; background:white; z-index: 999; }
+        iframe { width: 100%; height: 100%; border: none; }
+        .lock-screen { background: #dc2626; color: white; }
+        input, button { padding: 0.5rem 1rem; margin: 0.5rem; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; }
+        button { background: #2563eb; color: white; cursor: pointer; border: none; }
+        button:hover { background: #1d4ed8; }
+    </style>
+</head>
+<body>
+
+    <div id="view-loading" class="container">
+        <h2>กำลังโหลดข้อมูลระบบข้อสอบ...</h2>
+        <p>กรุณารอสักครู่</p>
+    </div>
+
+    <div id="view-login" class="container hidden">
+        <h2>ยืนยันตัวตนเข้าสอบ</h2>
+        
+        <div style="margin-bottom: 1rem;">
+            <label for="select-exam">เลือกวิชาสอบ:</label><br>
+            <select id="select-exam" style="padding: 0.5rem; width: 80%; border-radius: 6px; margin-top: 0.5rem;">
+                <option value="">-- กำลังโหลดรายชื่อวิชา... --</option>
+            </select>
+        </div>
+    
+        <div>
+            <input type="email" id="input-email" placeholder="กรอก Email ของคุณ" style="width: 75%;" required>
+        </div>
+        <br>
+        <button onclick="handleVerifyEmail()">ตรวจสอบสิทธิ์และเข้าสอบ</button>
+    </div>
+
+    <div id="view-already-taken" class="container hidden">
+        <h2 style="color: #dc2626;">ไม่สามารถเข้าสอบได้</h2>
+        <p>Email นี้ถูกใช้ในการทำข้อสอบไปแล้ว</p>
+        <button onclick="switchView('view-login')">กลับไปหน้ากรอก Email</button>
+    </div>
+
+    <div id="view-exam" class="full-screen hidden">
+        <iframe id="exam-iframe" src="">กำลังโหลดข้อสอบ...</iframe>
+    </div>
+
+    <div id="view-lock" class="full-screen lock-screen flex-col hidden" style="display: flex; justify-content: center; align-items: center;">
+        <h1>🔒 บัญชีของคุณถูกล็อกชั่วคราว</h1>
+        <p id="lock-message" style="font-size: 1.2rem;"></p>
+        <p>กรุณาเรียกครูประจำวิชาเพื่อทำการปลดล็อก</p>
+        <div>
+            <input type="password" id="teacher-password" placeholder="รหัสผ่านของครู" style="color: black;">
+            <button onclick="handleUnlock()" style="background: white; color: #dc2626; font-weight: bold;">ปลดล็อก</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
