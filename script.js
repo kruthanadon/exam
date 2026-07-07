@@ -131,9 +131,9 @@ function initAntiCheat() {
         count++;
         localStorage.setItem("cheatCount", count.toString());
 
-        alert(`⚠️ คำเตือน: คุณออกนอกหน้าจอสอบแล้วจำนวน ${count} ครั้ง หากเกิน 3 ครั้งระบบจะทำการล็อก!`);
+        alert(`⚠️ คำเตือน: คุณออกนอกหน้าจอสอบแล้วจำนวน ${count} ครั้ง หากเกิน 5 ครั้งระบบจะทำการล็อก!`);
 
-        if (count >= 3) {
+        if (count >= 5) {
             localStorage.setItem("isLocked", "true");
             showLockScreen();
         }
