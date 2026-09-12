@@ -169,6 +169,7 @@ async function handleUnlock() {
         alert("🔓 Admin Reset เรียบร้อยแล้ว ระบบกำลังกลับสู่หน้าหลัก");
         fetchActiveExams(); // เรียกโหลดวิชาใหม่และสลับไปหน้า view-login
         return;
+    }
 
     try {
         const response = await fetch(API_URL, {
