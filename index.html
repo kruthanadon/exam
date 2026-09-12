@@ -2,64 +2,112 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ระบบสอบออนไลน์ (Anti-Cheat System)</title>
+    <!-- โหลด Tailwind CSS ผ่าน CDN เพื่อความสวยงามบนมือถือ -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Chula', sans-serif; background: #f3f4f6; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; max-width: 500px; width: 100%; }
+        /* ซ่อน Element เมื่อมี class hidden */
         .hidden { display: none !important; }
-        .full-screen { position: fixed; top:0; left:0; width:100vw; height:100vh; background:white; z-index: 999; }
-        iframe { width: 100%; height: 100%; border: none; }
-        .lock-screen { background: #dc2626; color: white; }
-        input, button { padding: 0.5rem 1rem; margin: 0.5rem; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; }
-        button { background: #2563eb; color: white; cursor: pointer; border: none; }
-        button:hover { background: #1d4ed8; }
     </style>
 </head>
-<body>
+<body class="bg-slate-100 font-sans min-h-screen flex items-center justify-center p-4 antialiased">
 
-    <div id="view-loading" class="container">
-        <h2>กำลังโหลดข้อมูลระบบข้อสอบ...</h2>
-        <p>กรุณารอสักครู่</p>
+    <!-- 1. หน้าต่างกำลังโหลดข้อมูล -->
+    <div id="view-loading" class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 text-center space-y-3">
+        <div class="inline-block w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
+        <h2 class="text-xl font-bold text-slate-800">กำลังโหลดข้อมูลระบบข้อสอบ...</h2>
+        <p class="text-sm text-slate-500">กรุณารอสักครู่</p>
     </div>
 
-    <div id="view-login" class="container hidden">
-        <h2>ยืนยันตัวตนเข้าสอบ</h2>
-        
-        <div style="margin-bottom: 1rem;">
-            <label for="select-exam">เลือกวิชาสอบ:</label><br>
-            <select id="select-exam" style="padding: 0.5rem; width: 80%; border-radius: 6px; margin-top: 0.5rem;">
-                <option value="">-- กำลังโหลดรายชื่อวิชา... --</option>
-            </select>
+    <!-- 2. หน้าต่างเข้าสู่ระบบ / เลือกวิชาสอบ -->
+    <div id="view-login" class="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 sm:p-8 space-y-6 hidden">
+        <div class="text-center">
+            <h2 class="text-2xl font-bold text-slate-800">ยืนยันตัวตนเข้าสอบ</h2>
+            <p class="text-sm text-slate-500 mt-1">กรุณาเลือกวิชาและกรอกอีเมลสถาบัน</p>
         </div>
-    
-        <div>
-            <input type="email" id="input-email" placeholder="กรอก Email ของคุณ" style="width: 75%;" required>
-        </div>
-        <br>
-        <button onclick="handleVerifyEmail()">ตรวจสอบสิทธิ์และเข้าสอบ</button>
-    </div>
 
-    <div id="view-already-taken" class="container hidden">
-        <h2 style="color: #dc2626;">ไม่สามารถเข้าสอบได้</h2>
-        <p>Email นี้ถูกใช้ในการทำข้อสอบไปแล้ว</p>
-        <button onclick="switchView('view-login')">กลับไปหน้ากรอก Email</button>
-    </div>
+        <div class="space-y-4">
+            <div>
+                <label for="select-exam" class="block text-sm font-medium text-slate-700 mb-1">เลือกวิชาสอบ</label>
+                <select id="select-exam" class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all">
+                    <option value="">-- กำลังโหลดรายชื่อวิชา... --</option>
+                </select>
+            </div>
 
-    <div id="view-exam" class="full-screen hidden">
-        <iframe id="exam-iframe" src="">กำลังโหลดข้อสอบ...</iframe>
-    </div>
+            <div>
+                <label for="input-email" class="block text-sm font-medium text-slate-700 mb-1">Email สถาบัน</label>
+                <input type="email" id="input-email" placeholder="เช่น 28228@blm.ac.th" class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all" required>
+            </div>
 
-    <div id="view-lock" class="full-screen lock-screen flex-col hidden" style="display: flex; justify-content: center; align-items: center;">
-        <h1>🔒 บัญชีของคุณถูกล็อกชั่วคราว</h1>
-        <p id="lock-message" style="font-size: 1.2rem;"></p>
-        <p>กรุณาเรียกครูประจำวิชาเพื่อทำการปลดล็อก</p>
-        <div>
-            <input type="password" id="teacher-password" placeholder="รหัสผ่านของครู" style="color: black;">
-            <button onclick="handleUnlock()" style="background: white; color: #dc2626; font-weight: bold;">ปลดล็อก</button>
+            <button onclick="handleVerifyEmail()" class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold rounded-xl text-base shadow-lg shadow-blue-500/30 transition-all duration-200">
+                ตรวจสอบสิทธิ์และเข้าสอบ
+            </button>
         </div>
     </div>
 
+    <!-- 3. หน้าต่างแจ้งเตือนสอบไปแล้ว -->
+    <div id="view-already-taken" class="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 sm:p-8 text-center space-y-4 hidden">
+        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto text-red-600">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        </div>
+        <h2 class="text-2xl font-bold text-red-600">ไม่สามารถเข้าสอบได้</h2>
+        <p class="text-slate-600 text-sm">Email นี้ถูกใช้ในการทำข้อสอบไปแล้ว</p>
+        <button onclick="switchView('view-login')" class="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl text-sm transition-all">
+            กลับไปหน้ากรอก Email
+        </button>
+    </div>
+
+    <!-- 4. หน้าต่างทำข้อสอบ (iFrame เต็มจอ) -->
+    <div id="view-exam" class="fixed inset-0 w-full h-full bg-white z-50 hidden">
+        <iframe id="exam-iframe" class="w-full h-full border-none">กำลังโหลดข้อสอบ...</iframe>
+    </div>
+
+    <!-- 5. หน้าต่างล็อกจอ (Lock Screen - Mobile Friendly UI) -->
+    <div id="view-lock" class="fixed inset-0 w-full h-full bg-slate-900 z-[999] flex items-center justify-center p-4 overflow-y-auto hidden">
+        <div class="w-full max-w-md bg-slate-800/90 backdrop-blur-md border border-slate-700 rounded-2xl p-6 sm:p-8 shadow-2xl text-center my-auto">
+            
+            <div class="w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+            </div>
+
+            <h2 class="text-xl sm:text-2xl font-bold text-white mb-2">ระบบถูกล็อกเนื่องจากทุจริต</h2>
+            
+            <p id="lock-message" class="text-sm sm:text-base text-slate-300 bg-slate-900/60 border border-slate-700/50 rounded-xl p-3.5 mb-6 leading-relaxed">
+                คุณทุจริตการสอบเนื่องจากออกจากหน้าสอบเกินจำนวนที่กำหนด
+            </p>
+
+            <div class="space-y-4">
+                <div class="text-left">
+                    <label for="teacher-password" class="block text-xs font-medium text-slate-400 mb-1.5 ml-1">
+                        รหัสผ่านครูประจำวิชา / Admin
+                    </label>
+                    <input 
+                        type="password" 
+                        id="teacher-password" 
+                        placeholder="กรอกรหัสผ่านเพื่อปลดล็อก" 
+                        class="w-full px-4 py-3 bg-slate-900/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-base focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                        autocomplete="off"
+                    />
+                </div>
+
+                <button 
+                    onclick="handleUnlock()" 
+                    class="w-full py-3.5 bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-medium rounded-xl text-base shadow-lg shadow-red-600/30 transition-all duration-200 active:scale-[0.98]"
+                >
+                    🔓 ยืนยันการปลดล็อก
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-500 mt-6">
+                หากพบปัญหา กรุณายกมือแจ้งครูผู้สอนประจำห้องสอบ
+            </p>
+        </div>
+    </div>
+
+    <!-- โหลด JS หลัก -->
     <script src="script.js"></script>
 </body>
 </html>
