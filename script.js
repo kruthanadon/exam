@@ -5,6 +5,22 @@ let currentEmail = "";
 
 window.onload = function() {
     checkLockStatus();
+
+    // 1. กด Enter ในช่อง Email ให้เรียก handleVerifyEmail()
+    document.getElementById('input-email')?.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault(); // ป้องกันหน้าเว็บ Refresh
+            handleVerifyEmail();
+        }
+    });
+
+    // 2. กด Enter ในช่อง รหัสผ่านครู ให้เรียก handleUnlock()
+    document.getElementById('teacher-password')?.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            handleUnlock();
+        }
+    });
 };
 
 // [จุดที่ 3] อัปเดตฟังก์ชัน checkLockStatus เดิม
