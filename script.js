@@ -164,7 +164,8 @@ async function handleUnlock() {
 
     // ⭐ เงื่อนไข Admin Reset: ถ้าใส่ admin1234 ให้ปลดล็อกและเคลียร์ค่าคืนหน้าหลักทันที
     if (passwordInput === "admin1234") {
-        localStorage.clear(); // หรือลบเฉพาะคีย์: removeItem("isLocked"), removeItem("cheatCount"), ฯลฯ
+        localStorage.setItem("isLocked", "false");
+        localStorage.setItem("cheatCount", "0");
         document.getElementById('teacher-password').value = "";
         alert("🔓 Admin Reset เรียบร้อยแล้ว ระบบกำลังกลับสู่หน้าหลัก");
         fetchActiveExams(); // เรียกโหลดวิชาใหม่และสลับไปหน้า view-login
