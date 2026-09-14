@@ -2,7 +2,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbygJE90BMEPD2HwLkbMGYF8
 
 let selectedExam = "";
 let currentEmail = "";
-let lastCheatTime = -1; // ตัวแปรป้องกันการนับซ้ำ (Debounce)
+let lastCheatTime = 0; // ตัวแปรป้องกันการนับซ้ำ (Debounce)
 let isAntiCheatInitialized = false;
 
 window.onload = function() {
@@ -192,7 +192,7 @@ function initAntiCheat() {
             localStorage.setItem("isLocked", "true");
             showLockScreen();
         } else {
-            alert(`⚠️ คำเตือน: คุณออกนอกหน้าจอสอบแล้วจำนวน ${count} ครั้ง หากถึง 4 ครั้งระบบจะทำการล็อก!`);
+            alert(`⚠️ คำเตือน: คุณออกนอกหน้าจอสอบแล้วจำนวน ${count-1} ครั้ง หากถึง 3 ครั้งระบบจะทำการล็อก!`);
         }
     }
 
@@ -208,7 +208,7 @@ function initAntiCheat() {
 
 function showLockScreen() {
     const count = localStorage.getItem("cheatCount") || 4;
-    document.getElementById('lock-message').innerText = `คุณทุจริตการสอบเนื่องจากออกจากหน้าสอบวิชา [${selectedExam}] จำนวน ${count} ครั้ง`;
+    document.getElementById('lock-message').innerText = `คุณทุจริตการสอบเนื่องจากออกจากหน้าสอบวิชา [${selectedExam}] จำนวน ${count-1} ครั้ง`;
     switchView('view-lock');
 }
 
