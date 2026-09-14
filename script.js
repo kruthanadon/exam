@@ -2,7 +2,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbygJE90BMEPD2HwLkbMGYF8
 
 let selectedExam = "";
 let currentEmail = "";
-let lastCheatTime = 0; // ตัวแปรป้องกันการนับซ้ำ (Debounce)
+let lastCheatTime = -1; // ตัวแปรป้องกันการนับซ้ำ (Debounce)
 let isAntiCheatInitialized = false;
 
 window.onload = function() {
